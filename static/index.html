@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI Spacekraft</title>
+  <title>MindFlow 💬</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -145,12 +145,35 @@
       border-radius: 999px;
       background: #4299e1;
     }
+
+    .quick-goals {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .quick-btn {
+      margin-top: 0;
+      width: auto;
+      padding: 6px 12px;
+      background: #ebf8ff;
+      color: #2b6cb0;
+      border: 1px solid #bee3f8;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .quick-btn:hover { background: #bee3f8; }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>AI Spacekraft</h1>
+    <h1>MindFlow 💬</h1>
     <p>Find the perfect place to focus, work, or relax.</p>
   </header>
 
@@ -159,10 +182,16 @@
     <h2>Find a Space</h2>
 
     <label for="location">Location</label>
-    <input id="location" type="text" placeholder="e.g. Amsterdam" />
+    <input id="location" type="text" placeholder="e.g. Amsterdam" value="Amsterdam" />
 
     <label for="goal">What do you need?</label>
-    <input id="goal" type="text" placeholder="e.g. quiet place to study, meet a client, relax with coffee" />
+    <input id="goal" type="text" placeholder="e.g. quiet place to study, meet a client, relax with coffee" value="quiet place to study" />
+    <div class="quick-goals">
+      <button type="button" class="quick-btn" onclick="setGoal('quiet place to study or work')">📚 Study / Work</button>
+      <button type="button" class="quick-btn" onclick="setGoal('meeting a client')">🤝 Meeting a client</button>
+      <button type="button" class="quick-btn" onclick="setGoal('meeting an interviewer')">💼 Job interview</button>
+      <button type="button" class="quick-btn" onclick="setGoal('searching for a library')">🏛️ Find a library</button>
+    </div>
 
     <button id="recommend-btn" onclick="getRecommendations()">Find Spaces</button>
     <div id="search-error" class="error"></div>
@@ -186,6 +215,10 @@
   </div>
 
   <script>
+    function setGoal(text) {
+      document.getElementById('goal').value = text;
+    }
+
     const API_BASE = '';  // empty = same origin; set to your Cloud Run URL when deployed
     const USER_ID = 'user_' + Math.random().toString(36).slice(2, 8);
 
