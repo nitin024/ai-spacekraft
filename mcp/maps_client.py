@@ -1,5 +1,30 @@
 import requests
 import os
+import math
+
+
+def _haversine_km(lat1, lon1, lat2, lon2):
+    R = 6371
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return round(R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a)), 2)
+
+
+def _geocode(location, api_key):
+    try:
+        res = requests.get(
+            "https://maps.googleapis.com/maps/api/geocode/json",
+            params={"address": location, "key": api_key},
+            timeout=5,
+        ).json()
+        if res.get("status") == "OK":
+            loc = res["results"][0]["geometry"]["location"]
+            return loc["lat"], loc["lng"]
+    except Exception:
+        pass
+    return None, None
 
 MOCK_PLACES = {
     "cafe": [
@@ -34,6 +59,8 @@ def fetch_places(location, categories):
                 places.append({**p, "name": f"{p['name']} ({location})"})
         return places
 
+    user_lat, user_lon = _geocode(location, api_key)
+
     places = []
     for cat in categories:
         try:
@@ -43,7 +70,7 @@ def fetch_places(location, categories):
                 headers={
                     "Content-Type": "application/json",
                     "X-Goog-Api-Key": api_key,
-                    "X-Goog-FieldMask": "places.displayName,places.rating",
+                    "X-Goog-FieldMask": "places.displayName,places.rating,places.location",
                 },
                 timeout=5,
             ).json()
@@ -53,10 +80,15 @@ def fetch_places(location, categories):
                 continue
 
             for p in res.get("places", []):
+                loc = p.get("location", {})
+                if user_lat is not None and loc.get("latitude") is not None:
+                    distance = _haversine_km(user_lat, user_lon, loc["latitude"], loc["longitude"])
+                else:
+                    distance = 1.0  # neutral fallback when coordinates unavailable
                 places.append({
                     "name": p["displayName"]["text"],
                     "rating": p.get("rating", 3.0),
-                    "distance": 0,
+                    "distance": distance,
                     "type": cat,
                 })
         except Exception as e:
