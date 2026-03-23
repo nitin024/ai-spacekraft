@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from agent.goal_parser import parse_goal
 from mcp.maps_client import fetch_places
 from agent.scoring import score_place
@@ -7,9 +9,11 @@ from utils.session_manager import create_session, update_rejected, get_session
 
 app = FastAPI()
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 @app.get("/")
 def root():
-    return {"status": "ok", "endpoints": ["/recommend", "/feedback"]}
+    return FileResponse("static/index.html")
 
 @app.post("/recommend")
 def recommend(user_id: str, goal_text: str, location: str):

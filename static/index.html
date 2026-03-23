@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Spacekraft</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      color: #2b6cb0;
+    }
+
+    header p {
+      color: #718096;
+      margin-top: 6px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 18px;
+      color: #2d3748;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 6px;
+      margin-top: 14px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: #4299e1;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: #2b6cb0;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #2c5282; }
+    button:disabled { background: #a0aec0; cursor: not-allowed; }
+
+    .place-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .place-card.top {
+      border-color: #4299e1;
+      background: #ebf8ff;
+    }
+
+    .place-card .name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #2d3748;
+    }
+
+    .place-card .meta {
+      font-size: 0.82rem;
+      color: #718096;
+      margin-top: 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #bee3f8;
+      color: #2b6cb0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-top: 6px;
+    }
+
+    .error {
+      color: #c53030;
+      font-size: 0.88rem;
+      margin-top: 10px;
+    }
+
+    #feedback-section { display: none; }
+
+    .score-bar-wrapper {
+      margin-top: 8px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      height: 6px;
+      width: 100%;
+    }
+
+    .score-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: #4299e1;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>AI Spacekraft</h1>
+    <p>Find the perfect place to focus, work, or relax.</p>
+  </header>
+
+  <!-- Search Form -->
+  <div class="card">
+    <h2>Find a Space</h2>
+
+    <label for="location">Location</label>
+    <input id="location" type="text" placeholder="e.g. Amsterdam" />
+
+    <label for="goal">What do you need?</label>
+    <input id="goal" type="text" placeholder="e.g. quiet place with wifi to work" />
+
+    <button id="recommend-btn" onclick="getRecommendations()">Find Spaces</button>
+    <div id="search-error" class="error"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="card" id="results-section" style="display:none;">
+    <h2>Recommendations</h2>
+    <div id="results-list"></div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="card" id="feedback-section">
+    <h2>Not satisfied? Give feedback</h2>
+
+    <label for="feedback-text">What was wrong?</label>
+    <input id="feedback-text" type="text" placeholder="e.g. too crowded, too noisy" />
+
+    <button onclick="submitFeedback()">Get Better Suggestions</button>
+    <div id="feedback-error" class="error"></div>
+  </div>
+
+  <script>
+    const API_BASE = '';  // empty = same origin; set to your Cloud Run URL when deployed
+    const USER_ID = 'user_' + Math.random().toString(36).slice(2, 8);
+
+    function renderPlaces(places, topName) {
+      const list = document.getElementById('results-list');
+      list.innerHTML = '';
+      places.forEach((p, i) => {
+        const isTop = p.name === topName;
+        const scorePercent = Math.min(100, Math.round(p.score * 20));
+        list.innerHTML += `
+          <div class="place-card ${isTop ? 'top' : ''}">
+            <div class="name">${p.name} ${isTop ? '⭐ Best Match' : ''}</div>
+            <div class="meta">Type: ${p.type} &nbsp;·&nbsp; Rating: ${p.rating} &nbsp;·&nbsp; Distance: ${p.distance} km</div>
+            <span class="badge">#${i + 1}</span>
+            <div class="score-bar-wrapper">
+              <div class="score-bar" style="width:${scorePercent}%"></div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    async function getRecommendations() {
+      const location = document.getElementById('location').value.trim();
+      const goal = document.getElementById('goal').value.trim();
+      const errEl = document.getElementById('search-error');
+      errEl.textContent = '';
+
+      if (!location || !goal) {
+        errEl.textContent = 'Please fill in both fields.';
+        return;
+      }
+
+      const btn = document.getElementById('recommend-btn');
+      btn.disabled = true;
+      btn.textContent = 'Searching...';
+
+      try {
+        const res = await fetch(`${API_BASE}/recommend?user_id=${USER_ID}&goal_text=${encodeURIComponent(goal)}&location=${encodeURIComponent(location)}`, {
+          method: 'POST'
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          errEl.textContent = data.error;
+        } else {
+          renderPlaces(data.top3, data.recommendation.name);
+          document.getElementById('results-section').style.display = 'block';
+          document.getElementById('feedback-section').style.display = 'block';
+        }
+      } catch (e) {
+        errEl.textContent = 'Could not connect to the server.';
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Find Spaces';
+    }
+
+    async function submitFeedback() {
+      const feedbackText = document.getElementById('feedback-text').value.trim();
+      const errEl = document.getElementById('feedback-error');
+      errEl.textContent = '';
+
+      if (!feedbackText) {
+        errEl.textContent = 'Please describe what was wrong.';
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/feedback?user_id=${USER_ID}&feedback_text=${encodeURIComponent(feedbackText)}`, {
+          method: 'POST'
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          errEl.textContent = data.error;
+        } else {
+          renderPlaces(data.top3, data.recommendation.name);
+          document.getElementById('feedback-text').value = '';
+        }
+      } catch (e) {
+        errEl.textContent = 'Could not connect to the server.';
+      }
+    }
+  </script>
+
+</body>
+</html>
