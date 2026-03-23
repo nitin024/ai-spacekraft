@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from dotenv import load_dotenv
+
+load_dotenv()
 from agent.goal_parser import parse_goal
 from mcp.maps_client import fetch_places
 from agent.scoring import score_place
@@ -19,13 +22,13 @@ def root():
 def recommend(user_id: str, goal_text: str, location: str):
     session = create_session(user_id)
     goal = parse_goal(goal_text)
-    categories = ["cafe", "library", "coworking"]
+    categories = goal["categories"]
 
     places = fetch_places(location, categories)
     if not places:
         return {"error": "No places found"}
 
-    scored = [score_place(p) for p in places]
+    scored = [score_place(p, preferences=goal["preferences"]) for p in places]
     ranked = sorted(scored, key=lambda x: x["score"], reverse=True)
 
     if not ranked:
